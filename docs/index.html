@@ -210,7 +210,7 @@
         function startGame(mode, iterations = 100) {
             gameMode = mode;
             aiIterations = iterations;
-            modeDisplay.textContent = `當前模式：${mode === 'PvP' ? '玩家對玩家' : mode === 'PvC' ? '玩家對電腦' : '電腦對玩家'}（AI等級: ${iterations}）`;
+            modeDisplay.textContent = `當前模式：${mode === 'PvP' ? '白棋先手 vs 黑棋後手' : mode === 'PvC' ? '白棋玩家 vs 黑棋電腦' : '白棋電腦 vs 黑棋玩家'}（AI等級: ${iterations}）`;
 
             document.getElementById('mode-selection').style.display = 'none';
             document.getElementById('ai-level-selection').style.display = 'none';
