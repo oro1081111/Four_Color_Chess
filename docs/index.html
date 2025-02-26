@@ -1,1 +1,487 @@
 
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邊緣四色棋 - 奧羅</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f8f9fa;
+        }
+        h1 {
+            margin-top: 20px;
+        }
+
+        #mode-selection {
+            margin: 20px auto;
+            text-align: center; /* 確保按鈕置中 */
+        }
+
+        #rules-section {
+            margin: 20px auto;
+            width: 50%; /* 控制規則寬度 */
+            text-align: left; /* 規則文字向左對齊 */
+        }
+
+        #board-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px auto;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(4, 100px);
+            grid-template-rows: repeat(4, 100px);
+            gap: 2px;
+            position: relative;
+        }
+        .cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #333;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            position: relative;
+        }
+        .red { background-color: #ff8383; }
+        .blue { background-color: #82beff; }
+        .yellow { background-color: #fff586; }
+        .green { background-color: #83f28e; }
+        .piece {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 5px solid;
+            position: relative; /* 必須是 relative 或 absolute 才能控制 z-index */
+            z-index: 10; /* 確保棋子在棋盤之上 */
+            transition: transform 0.5s ease; /* 滑動動畫 */
+        }
+
+        .black-border { border-color: black; }
+        .white-border { border-color: rgb(255, 255, 255); }
+        .red-piece { background-color: rgb(255, 40, 40); }
+        .blue-piece { background-color: rgb(40, 94, 255); }
+        .yellow-piece { background-color: rgb(255, 220, 46); }
+        .green-piece { background-color: rgb(30, 198, 30); }
+        .indicator {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: rgb(134, 0, 134);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            display: none; /* 初始隱藏指示物 */
+        }
+        #game-status {
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        #mode-display {
+            margin-top: 10px;
+            font-size: 18px;
+            color: #555;
+        }
+        #reset-button {
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
+        }
+        #reset-button:hover {
+            background-color: #0056b3;
+        }
+        #reset-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        #mode-selection {
+            margin-top: 20px;
+        }
+        .mode-button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .mode-button:hover { background-color: #218838; }
+    </style>
+</head>
+<body>
+    <h1>邊緣四色棋 - 奧羅</h1>
+    <div id="mode-display"></div>
+    <div id="mode-selection">
+        <button class="mode-button" onclick="startGame('PvP')">PvP（玩家對玩家）</button>
+        <button class="mode-button" onclick="showAILevelSelection('PvC')">PvC（玩家對電腦）</button>
+        <button class="mode-button" onclick="showAILevelSelection('CvP')">CvP（電腦對玩家）</button>
+        <h2>遊戲規則</h2>
+        <div id="rules-section">
+            <p>1. 棋盤為 4×4 格子，16顆棋子顏色分為白框、黑框搭配紅、藍、黃、綠四色。</p>
+            <p>2. 白色玩家與黑色玩家各有白框/黑框各4顆棋子，分別放在棋盤頂部和底部。</p>
+            <p>3. 深紫色圓形為移動指示物，表示當前必須移動的棋子。</p>
+            <p>4. 由白色玩家先開始，點擊任意白框棋子將移動指示物放置上去並開始遊戲。</p>
+            <p>5. 棋子只能水平或垂直移動，不能跳過其他棋子，且目標格子必須是空的。</p>
+            <p>6. 棋子移動到某格後，移動指示物會切換到對手與該格相同顏色的棋子。</p>
+            <p>7. 如果任一方在必須移動時無法移動該棋子，則遊戲結束，對方獲勝。</p>
+        </div>
+    </div>
+
+    <!-- AI 難度選擇 -->
+    <div id="ai-level-selection" style="display: none;">
+        <h2>選擇 AI 等級</h2>
+        <button class="mode-button" onclick="startGameWithAI(10)">簡單 (10 次模擬)</button>
+        <button class="mode-button" onclick="startGameWithAI(100)">普通 (100 次模擬)</button>
+        <button class="mode-button" onclick="startGameWithAI(8000)">困難 (8000 次模擬)</button>
+    </div>
+    
+    <div id="board-container" style="display: none;">
+        <div id="board">
+            <div class="cell red"><div class="piece black-border red-piece" data-id="1"></div></div>
+            <div class="cell blue"><div class="piece black-border blue-piece" data-id="2"></div></div>
+            <div class="cell yellow"><div class="piece black-border yellow-piece" data-id="3"></div></div>
+            <div class="cell green"><div class="piece black-border green-piece" data-id="4"></div></div>
+            <div class="cell blue"></div>
+            <div class="cell red"></div>
+            <div class="cell green"></div>
+            <div class="cell yellow"></div>
+            <div class="cell yellow"></div>
+            <div class="cell green"></div>
+            <div class="cell red"></div>
+            <div class="cell blue"></div>
+            <div class="cell green"><div class="piece white-border green-piece" data-id="8"></div></div>
+            <div class="cell yellow"><div class="piece white-border yellow-piece" data-id="7"></div></div>
+            <div class="cell blue"><div class="piece white-border blue-piece" data-id="6"></div></div>
+            <div class="cell red"><div class="piece white-border red-piece" data-id="5"><div class="indicator"></div></div></div>
+        </div>
+        
+    </div>
+    <div id="game-status"></div>
+    <div id="reset-container">
+        <button id="reset-button">重置遊戲</button>
+    </div>
+    <script>
+        const board = document.getElementById('board');
+        const cells = document.querySelectorAll('.cell');
+        const statusDisplay = document.getElementById('game-status');
+        const modeDisplay = document.getElementById('mode-display');
+        const resetButton = document.getElementById('reset-button');
+        const modeSelection = document.getElementById('mode-selection');
+        const boardContainer = document.getElementById('board-container');
+        let currentIndicator = document.querySelector('.indicator');
+        let currentPiece = null;
+        let gameActive = false;
+        let gameMode = '';
+        let selectedMode = "PvC"; // 預設為玩家對電腦
+        let aiIterations = 100
+
+        function showAILevelSelection(mode) {
+            selectedMode = mode;  // 記住玩家選擇的模式
+            document.getElementById('mode-selection').style.display = 'none';
+            document.getElementById('ai-level-selection').style.display = 'block';
+        }
+
+        function startGameWithAI(iterations) {
+            aiIterations = iterations; // 記住玩家選擇的 AI 難度
+            startGame(selectedMode, iterations); // 使用選擇的模式開始遊戲
+        }
+
+        function startGame(mode, iterations = 100) {
+            gameMode = mode;
+            aiIterations = iterations;
+            modeDisplay.textContent = `當前模式：${mode === 'PvP' ? '玩家對玩家' : mode === 'PvC' ? '玩家對電腦' : '電腦對玩家'}（AI等級: ${iterations}）`;
+
+            document.getElementById('mode-selection').style.display = 'none';
+            document.getElementById('ai-level-selection').style.display = 'none';
+            boardContainer.style.display = 'flex';
+            resetButton.style.display = 'block';
+
+            if (gameMode === 'CvP') {
+                startCvPGame();
+            } else {
+                enablePieceSelection();
+            }
+        }
+
+        function enablePieceSelection() {
+            statusDisplay.textContent = '請選擇一顆白框棋子作為起始棋子';
+            const whitePieces = document.querySelectorAll('.piece.white-border');
+            whitePieces.forEach(piece => {
+                piece.addEventListener('click', selectStartingPiece);
+            });
+        }
+
+        function selectStartingPiece(event) {
+            const selectedPiece = event.currentTarget;
+
+            currentPiece = selectedPiece;
+            selectedPiece.appendChild(currentIndicator);
+            currentIndicator.style.display = 'block';
+
+            disablePieceSelection();
+            gameActive = true;
+            statusDisplay.textContent = '遊戲開始！';
+        }
+
+        function disablePieceSelection() {
+            const whitePieces = document.querySelectorAll('.piece.white-border');
+            whitePieces.forEach(piece => {
+                piece.removeEventListener('click', selectStartingPiece);
+            });
+        }
+
+        function startCvPGame() {
+            const whitePieces = Array.from(document.querySelectorAll('.piece.white-border'));
+            const randomIndex = Math.floor(Math.random() * whitePieces.length);
+            currentPiece = whitePieces[randomIndex];
+            currentPiece.appendChild(currentIndicator);
+            currentIndicator.style.display = 'block';
+            statusDisplay.textContent = '電腦已選擇起始棋子，遊戲開始！';
+
+            gameActive = true;
+            setTimeout(() => computerMove(), 500);
+        }
+
+        cells.forEach(cell => {
+            cell.addEventListener('click', () => handleCellClick(cell));
+        });
+
+        resetButton.addEventListener('click', resetGame);
+
+        function handleCellClick(targetCell) {
+            if (!gameActive) return;
+            if (gameMode === 'PvC' && currentPiece.classList.contains('black-border')) return;
+            if (gameMode === 'CvP' && currentPiece.classList.contains('white-border')) return;
+
+            const currentCell = currentPiece.parentElement;
+            if (!isValidMove(currentCell, targetCell)) {
+                console.log("非法移動，忽略");
+                return;
+            }
+
+            // 計算滑動距離
+            const currentRect = currentCell.getBoundingClientRect();
+            const targetRect = targetCell.getBoundingClientRect();
+            const deltaX = targetRect.left - currentRect.left;
+            const deltaY = targetRect.top - currentRect.top;
+
+            // 滑動動畫
+            currentPiece.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+            // 延遲更新棋子位置，等滑動完成
+            setTimeout(() => {
+                currentPiece.style.transform = ''; // 重置滑動動畫
+                targetCell.appendChild(currentPiece);
+
+                const targetColor = getCellColor(targetCell);
+                const opponentPiece = findOpponentPieceByColor(targetColor);
+
+                if (opponentPiece) {
+                    moveIndicator(opponentPiece);
+                    if (!hasValidMove(opponentPiece)) {
+                        endGame(currentPiece.classList.contains('white-border') ? '黑色玩家獲勝！' : '白色玩家獲勝！');
+                    } else if (gameMode === 'PvC' || gameMode === 'CvP') {
+                        setTimeout(() => computerMove(), 500);
+                    }
+                } else {
+                    endGame(currentPiece.classList.contains('white-border') ? '黑色玩家獲勝！' : '白色玩家獲勝！');
+                }
+            }, 500); // 等待動畫完成
+        }
+
+        function movePieceTo(targetCell) {
+            console.log("✅ 執行 movePieceTo，目標格子:", targetCell);
+
+            if (!targetCell) {
+                console.error("❌ 無法移動，targetCell 為 null");
+                return;
+            }
+
+            const currentCell = currentPiece.parentElement;
+            const currentRect = currentCell.getBoundingClientRect();
+            const targetRect = targetCell.getBoundingClientRect();
+            const deltaX = targetRect.left - currentRect.left;
+            const deltaY = targetRect.top - currentRect.top;
+
+            currentPiece.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+            setTimeout(() => {
+                currentPiece.style.transform = '';  // 重置動畫
+                targetCell.appendChild(currentPiece);
+                console.log("✅ 棋子成功移動到:", targetCell);
+
+                // **新增：更新指示物**
+                updateIndicator();
+            }, 500);
+        }
+        
+        function updateIndicator() {
+            console.log("🔄 更新指示物位置...");
+            
+            // 獲取當前棋子的顏色
+            const currentColor = getCellColor(currentPiece.parentElement);
+            console.log("當前棋子的顏色:", currentColor);
+
+            // 找到對手相同顏色的棋子
+            const opponentPiece = findOpponentPieceByColor(currentColor);
+
+            if (opponentPiece) {
+                console.log("🎯 新的焦點棋子:", opponentPiece);
+                
+                // **檢查對手是否還有合法移動**
+                if (!hasValidMove(opponentPiece)) {
+                    console.log("⚠️ 對手無法移動，遊戲結束");
+                    endGame(currentPiece.classList.contains('white-border') ? '白色玩家獲勝！' : '黑色玩家獲勝！');
+                    return;
+                }
+
+                moveIndicator(opponentPiece);  // 移動指示物到對手棋子
+            } else {
+                console.warn("⚠️ 沒有找到對手棋子，遊戲已結束");
+                endGame(currentPiece.classList.contains('white-border') ? '白色玩家獲勝！' : '黑色玩家獲勝！');
+            }
+        }
+
+
+
+        async function computerMove() {
+            if (!gameActive) return;
+
+            const chessmanArray = Array.from(cells).map(cell => {
+                return cell.children.length > 0 ? cell.children[0].dataset.id : 0;
+            });
+
+            const gameData = {
+                board: [1,2,3,4,2,1,4,3,3,4,1,2,4,3,2,1], // 固定棋盤
+                chessman: chessmanArray.map(x => x ? parseInt(x) : 0),
+                focus: parseInt(currentPiece.dataset.id),
+                iterations: aiIterations // AI 模擬次數
+            };
+
+            console.log("發送請求到後端 AI:", gameData);
+
+            try {
+                const response = await fetch("https://fourcolorchess-production.up.railway.app/get_best_move", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(gameData)
+                });
+
+                const result = await response.json();
+                console.log("AI 返回結果:", result);
+
+                // 顯示 AI 勝率
+                statusDisplay.textContent = `AI勝率 ${result.win_rate}%`;
+
+                const bestMoveIndex = result.best_move;
+                const targetCell = cells[bestMoveIndex];
+
+                if (isValidMove(currentPiece.parentElement, targetCell)) {
+                    movePieceTo(targetCell);
+                } else {
+                    console.error("AI 返回了非法走法！");
+                }
+            } catch (error) {
+                console.error("與後端通信發生錯誤:", error);
+            }
+        }
+
+
+
+        function isValidMove(currentCell, targetCell) {
+            const currentIndex = Array.from(cells).indexOf(currentCell);
+            const targetIndex = Array.from(cells).indexOf(targetCell);
+            const rowDiff = Math.floor(currentIndex / 4) - Math.floor(targetIndex / 4);
+            const colDiff = (currentIndex % 4) - (targetIndex % 4);
+
+            if (!((rowDiff === 0 || colDiff === 0) && targetCell.children.length === 0)) {
+                return false;
+            }
+
+            if (rowDiff === 0) {
+                const start = Math.min(currentIndex, targetIndex);
+                const end = Math.max(currentIndex, targetIndex);
+                for (let i = start + 1; i < end; i++) {
+                    if (cells[i].children.length > 0) return false;
+                }
+            } else if (colDiff === 0) {
+                const start = Math.min(currentIndex, targetIndex);
+                const end = Math.max(currentIndex, targetIndex);
+                for (let i = start + 4; i < end; i += 4) {
+                    if (cells[i].children.length > 0) return false;
+                }
+            }
+            return true;
+        }
+
+        function getCellColor(cell) {
+            if (cell.classList.contains('red')) return 'red';
+            if (cell.classList.contains('blue')) return 'blue';
+            if (cell.classList.contains('yellow')) return 'yellow';
+            if (cell.classList.contains('green')) return 'green';
+            return null;
+        }
+
+        function findOpponentPieceByColor(color) {
+            const opponentClass = currentPiece.classList.contains('white-border') ? 'black-border' : 'white-border';
+            return Array.from(document.querySelectorAll(`.piece`)).find(piece => {
+                return piece.classList.contains(`${color}-piece`) && piece.classList.contains(opponentClass);
+            });
+        }
+
+        function moveIndicator(piece) {
+            piece.appendChild(currentIndicator);
+            currentPiece = piece;
+        }
+
+        function hasValidMove(piece) {
+            if (!piece) return false;  // 若 `piece` 為 null，直接回傳 false（遊戲應該結束）
+
+            const currentCell = piece.parentElement;
+            const currentIndex = Array.from(cells).indexOf(currentCell);
+
+            for (let i = 0; i < cells.length; i++) {
+                if (i === currentIndex) continue;
+                if (isValidMove(currentCell, cells[i])) {
+                    return true; // 如果有合法走法，回傳 true
+                }
+            }
+            
+            return false; // 沒有合法走法，回傳 false
+        }
+
+
+        function endGame(message) {
+            console.log("🏆 遊戲結束：" + message);
+            statusDisplay.textContent = message;
+            gameActive = false;
+        }
+
+
+        function resetGame() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>
