@@ -11,6 +11,10 @@ from MCTS import fourcolorgame, MCTSNode, mcts  # ⚠️ 這裡要替換成你�
 app = Flask(__name__)
 CORS(app)  # 允許跨域請求，讓前端能夠訪問後端
 
+@app.route('/')
+def home():
+    return "Four Color Chess API is running!"
+
 @app.route('/get_best_move', methods=['POST'])
 def get_best_move():
     data = request.json
