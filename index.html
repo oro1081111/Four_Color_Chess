@@ -381,7 +381,7 @@
             console.log("發送請求到後端 AI:", gameData);
 
             try {
-                const response = await fetch("http://127.0.0.1:5000/get_best_move", {
+                const response = await fetch("https://fourcolorchess-production.up.railway.app/get_best_move", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(gameData)
