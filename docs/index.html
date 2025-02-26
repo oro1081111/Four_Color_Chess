@@ -211,15 +211,17 @@
             gameMode = mode;
             aiIterations = iterations;
             // 定義 AI 等級對應關係
+            // 定義 AI 等級對應關係
             const aiLevels = {
-                500: "簡單",
-                5000: "普通",
-                10000: "困難"
+                10: "簡單",
+                100: "普通",
+                8000: "困難"
             };
             
-            modeDisplay.textContent = mode === 'PvP'
+            modeDisplay.innerHTML = mode === 'PvP'
                 ? `當前模式：白棋先手 vs 黑棋後手`
-                : `當前模式：${mode === 'PvC' ? '白棋玩家 vs 黑棋電腦' : '白棋電腦 vs 黑棋玩家'}（AI等級: ${aiLevels[iterations] || "未知"}）`;
+                : `當前模式：${mode === 'PvC' ? '白棋玩家 vs 黑棋電腦' : '白棋電腦 vs 黑棋玩家'}<br> AI等級: ${aiLevels[iterations] || "未知"}`;
+
 
             
             document.getElementById('mode-selection').style.display = 'none';
